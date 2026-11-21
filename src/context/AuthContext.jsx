@@ -47,14 +47,36 @@ export const AuthProvider = ({ children }) => {
     setSubscription(sub);
   }, [user]);
 
-  const sendOtp = async (phone) => {
+  const sendOtp = async (phone, mode = 'login') => {
     setIsLoading(true);
     setAuthError(null);
     try {
-      const res = await authApi.sendOtp(phone);
+      const res = await authApi.sendOtp(phone, mode);
       return res;
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Failed to send OTP';
+      const msg = err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to send OTP';
+      setAuthError(msg);
+      const error = new Error(msg);
+      error.notRegistered = err.response?.data?.notRegistered || err.notRegistered;
+      error.alreadyRegistered = err.response?.data?.alreadyRegistered || err.alreadyRegistered;
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const registerUser = async ({ name, phone, planId, otp }) => {
+    setIsLoading(true);
+    setAuthError(null);
+    try {
+      const res = await authApi.register({ name, phone, planId, otp });
+      if (res.user) {
+        setUser(res.user);
+        setSubscription(res.subscription || null);
+      }
+      return res;
+    } catch (err) {
+      const msg = err.response?.data?.error || err.response?.data?.message || err.message || 'Registration failed';
       setAuthError(msg);
       throw new Error(msg);
     } finally {
@@ -70,7 +92,7 @@ export const AuthProvider = ({ children }) => {
       if (res.user) {
         const adminPhone = getAdminPhone();
         const userPhone = (res.user.phone || '').toString().replace(/\D/g, '').slice(-10);
-        const role = userPhone === adminPhone ? 'admin' : 'user';
+        const role = userPhone === adminPhone ? 'admin' : (res.user.role || 'user');
         const updatedUser = { ...res.user, role };
         setUser(updatedUser);
         localStorage.setItem('streambox_user', JSON.stringify(updatedUser));
@@ -79,7 +101,7 @@ export const AuthProvider = ({ children }) => {
       }
       return res;
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Verification failed';
+      const msg = err.response?.data?.error || err.response?.data?.message || err.message || 'Verification failed';
       setAuthError(msg);
       throw new Error(msg);
     } finally {
@@ -127,6 +149,7 @@ export const AuthProvider = ({ children }) => {
         authError,
         sendOtp,
         verifyOtp,
+        registerUser,
         logout,
         subscribe,
         canWatch,

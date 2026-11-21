@@ -6,12 +6,17 @@ const router = Router();
 // POST /api/progress
 router.post('/', async (req, res) => {
   try {
-    const { movieId, positionSeconds, durationSeconds, userId } = req.body;
+    const { movieId, positionSeconds, durationSeconds } = req.body;
     if (!movieId) {
       return res.status(400).json({ error: 'movieId is required' });
     }
 
-    const effectiveUserId = userId || 'usr_guest';
+    const userId = req.headers['x-user-id'] || req.body.userId;
+    if (!userId) {
+      // Guest progress not stored in DB
+      return res.json({ success: true, guest: true });
+    }
+
     const pos = Math.round(positionSeconds || 0);
     const dur = Math.round(durationSeconds || 0);
     const percent = dur > 0 ? Math.round((pos / dur) * 100) : 0;
@@ -24,13 +29,7 @@ router.post('/', async (req, res) => {
       RETURNING *
     `;
 
-    const result = await query(upsertSql, [effectiveUserId, movieId, pos, dur, percent]);
-
-    // Update movie progress cache
-    await query(
-      'UPDATE movies SET progress = $1, last_position = $2 WHERE id = $3',
-      [percent, pos, movieId]
-    );
+    const result = await query(upsertSql, [userId, movieId, pos, dur, percent]);
 
     res.json({ success: true, progress: result.rows[0] });
   } catch (error) {
@@ -42,9 +41,13 @@ router.post('/', async (req, res) => {
 // GET /api/progress?userId=...
 router.get('/', async (req, res) => {
   try {
-    const userId = req.query.userId || 'usr_guest';
+    const userId = req.query.userId || req.headers['x-user-id'];
+    if (!userId) {
+      return res.json({});
+    }
+
     const result = await query(
-      'SELECT * FROM watch_progress WHERE user_id = $1',
+      'SELECT * FROM watch_progress WHERE user_id = $1 ORDER BY updated_at DESC',
       [userId]
     );
 
@@ -60,7 +63,7 @@ router.get('/', async (req, res) => {
 
     res.json(progressMap);
   } catch (error) {
-    console.error('Error fetching progress map:', error);
+    console.error('Error fetching progress:', error);
     res.status(500).json({ error: 'Failed to fetch watch progress' });
   }
 });

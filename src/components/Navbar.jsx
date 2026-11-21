@@ -122,8 +122,11 @@ const Navbar = () => {
                     <div className="px-4 py-2 border-b border-text-muted/20">
                       <p className="text-xs text-text-muted font-medium">Signed in as</p>
                       <p className="text-sm font-semibold text-text-primary truncate">
-                        {user.phone}
+                        {user.name || user.phone}
                       </p>
+                      {user.name && user.phone && (
+                        <p className="text-xs text-text-muted font-mono">{user.phone}</p>
+                      )}
                       {hasActivePlan ? (
                         <div className="mt-1 flex items-center gap-1.5 text-xs text-success font-medium">
                           <CheckCircle className="w-3.5 h-3.5" />

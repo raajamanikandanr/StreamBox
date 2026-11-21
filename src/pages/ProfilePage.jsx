@@ -61,7 +61,7 @@ const ProfilePage = () => {
                 <User className="w-8 h-8" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-text-primary">Primary Profile</h2>
+                <h2 className="text-xl font-bold text-text-primary">{user?.name || 'Primary Profile'}</h2>
                 <div className="flex items-center gap-1.5 text-xs text-text-muted mt-1">
                   <Phone className="w-3.5 h-3.5 text-blue-prime" />
                   <span>{user?.phone || 'Guest User'}</span>

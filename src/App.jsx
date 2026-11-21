@@ -37,6 +37,7 @@ function App() {
               }
             />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<LoginPage initialMode="register" />} />
             {/* Catch-all redirect */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

@@ -3,8 +3,11 @@ import { query } from '../db.js';
 
 const router = Router();
 
-export const formatMovie = (row) => {
+export const formatMovie = (row, userProgress = null) => {
   if (!row) return null;
+  const progress = userProgress ? userProgress.percent || 0 : (row.user_progress || 0);
+  const lastPosition = userProgress ? userProgress.position || 0 : (row.user_last_position || 0);
+
   return {
     id: row.id,
     title: row.title,
@@ -20,8 +23,8 @@ export const formatMovie = (row) => {
     hls_path: row.hls_path,
     stream_url: row.stream_url,
     status: row.status || 'ready',
-    progress: row.progress || 0,
-    lastPosition: row.last_position || 0,
+    progress,
+    lastPosition,
     createdAt: row.created_at
   };
 };
@@ -41,9 +44,19 @@ export const requireAdmin = (req, res, next) => {
 router.get('/search', async (req, res) => {
   try {
     const q = (req.query.q || '').trim();
+    const userId = req.headers['x-user-id'] || req.query.userId;
+    let progressMap = {};
+
+    if (userId) {
+      const pRes = await query('SELECT movie_id, position, percent FROM watch_progress WHERE user_id = $1', [userId]);
+      for (const row of pRes.rows) {
+        progressMap[row.movie_id] = { position: row.position, percent: row.percent };
+      }
+    }
+
     if (!q) {
       const all = await query('SELECT * FROM movies ORDER BY created_at DESC');
-      return res.json(all.rows.map(formatMovie));
+      return res.json(all.rows.map((row) => formatMovie(row, progressMap[row.id])));
     }
     const sql = `
       SELECT * FROM movies
@@ -54,7 +67,7 @@ router.get('/search', async (req, res) => {
       ORDER BY created_at DESC
     `;
     const result = await query(sql, [`%${q}%`]);
-    res.json(result.rows.map(formatMovie));
+    res.json(result.rows.map((row) => formatMovie(row, progressMap[row.id])));
   } catch (error) {
     console.error('Error searching movies:', error);
     res.status(500).json({ error: 'Failed to search movies' });
@@ -64,8 +77,18 @@ router.get('/search', async (req, res) => {
 // GET /api/movies
 router.get('/', async (req, res) => {
   try {
+    const userId = req.headers['x-user-id'] || req.query.userId;
+    let progressMap = {};
+
+    if (userId) {
+      const pRes = await query('SELECT movie_id, position, percent FROM watch_progress WHERE user_id = $1', [userId]);
+      for (const row of pRes.rows) {
+        progressMap[row.movie_id] = { position: row.position, percent: row.percent };
+      }
+    }
+
     const result = await query('SELECT * FROM movies ORDER BY created_at DESC');
-    res.json(result.rows.map(formatMovie));
+    res.json(result.rows.map((row) => formatMovie(row, progressMap[row.id])));
   } catch (error) {
     console.error('Error fetching movies:', error);
     res.status(500).json({ error: 'Failed to fetch movies' });

@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { moviesApi, adminApi } from '../services/api';
+import { useAuth } from './AuthContext';
 
 const MovieContext = createContext();
 
 export const MovieProvider = ({ children }) => {
+  const { user } = useAuth();
   const [movies, setMovies] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -23,9 +25,10 @@ export const MovieProvider = ({ children }) => {
     }
   }, []);
 
+  // Reload movies whenever user switches or logs in/out so their private space is loaded
   useEffect(() => {
     fetchMovies();
-  }, [fetchMovies]);
+  }, [fetchMovies, user?.id]);
 
   const recordProgress = useCallback(async (movieId, positionSeconds, durationSeconds) => {
     await moviesApi.saveProgress(movieId, positionSeconds, durationSeconds);

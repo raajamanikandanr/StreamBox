@@ -15,12 +15,13 @@ CREATE TABLE IF NOT EXISTS plans (
 
 CREATE TABLE IF NOT EXISTS users (
   id VARCHAR(64) PRIMARY KEY,
+  name VARCHAR(100),
   phone VARCHAR(10) UNIQUE NOT NULL CHECK (phone ~ '^[0-9]{10}$'),
   role VARCHAR(20) DEFAULT 'user',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Ensure existing database column is updated to 10 characters
+-- Ensure existing database column is updated to 10 characters and name exists
 DO $$
 BEGIN
   IF EXISTS (
@@ -28,6 +29,13 @@ BEGIN
     WHERE table_name = 'users' AND column_name = 'phone' AND character_maximum_length != 10
   ) THEN
     ALTER TABLE users ALTER COLUMN phone TYPE VARCHAR(10);
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'users' AND column_name = 'name'
+  ) THEN
+    ALTER TABLE users ADD COLUMN name VARCHAR(100);
   END IF;
 END $$;
 

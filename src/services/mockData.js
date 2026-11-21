@@ -56,8 +56,8 @@ export const MOCK_MOVIES = [
     // Fallback public HLS stream for instant live playback
     stream_url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
     status: 'ready',
-    progress: 42, // percent
-    lastPosition: 3500 // seconds
+    progress: 0,
+    lastPosition: 0
   },
   {
     id: 'mov-2',
@@ -74,8 +74,8 @@ export const MOCK_MOVIES = [
     hls_path: 'cyberpunk/master.m3u8',
     stream_url: 'https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8',
     status: 'ready',
-    progress: 78,
-    lastPosition: 5300
+    progress: 0,
+    lastPosition: 0
   },
   {
     id: 'mov-3',
@@ -92,8 +92,8 @@ export const MOCK_MOVIES = [
     hls_path: 'horizon/master.m3u8',
     stream_url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
     status: 'ready',
-    progress: 15,
-    lastPosition: 1200
+    progress: 0,
+    lastPosition: 0
   },
   {
     id: 'mov-4',
@@ -146,8 +146,8 @@ export const MOCK_MOVIES = [
     hls_path: 'vanguard/master.m3u8',
     stream_url: 'https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8',
     status: 'ready',
-    progress: 60,
-    lastPosition: 4500
+    progress: 0,
+    lastPosition: 0
   },
   {
     id: 'mov-7',
