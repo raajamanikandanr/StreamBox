@@ -377,25 +377,21 @@ export const moviesApi = {
       const res = await apiClient.get('/movies');
       return res.data;
     } catch (err) {
-      if (USE_MOCK_FALLBACK) {
-        await new Promise((r) => setTimeout(r, 250));
-        const baseMovies = getStoredMovies();
-        const user = getCurrentUser();
-        // Load user-specific watch progress space
-        const userProgress = user?.id
-          ? JSON.parse(localStorage.getItem(`streambox_progress_${user.id}`) || '{}')
-          : {};
+      console.warn('[Movies API] Falling back to catalog data:', err.message);
+      const baseMovies = getStoredMovies();
+      const user = getCurrentUser();
+      const userProgress = user?.id
+        ? JSON.parse(localStorage.getItem(`streambox_progress_${user.id}`) || '{}')
+        : {};
 
-        return baseMovies.map((m) => {
-          const item = userProgress[m.id];
-          return {
-            ...m,
-            progress: item ? item.percent : 0,
-            lastPosition: item ? item.position : 0
-          };
-        });
-      }
-      throw err;
+      return baseMovies.map((m) => {
+        const item = userProgress[m.id];
+        return {
+          ...m,
+          progress: item ? item.percent : 0,
+          lastPosition: item ? item.position : 0
+        };
+      });
     }
   },
 
@@ -404,23 +400,20 @@ export const moviesApi = {
       const res = await apiClient.get(`/movies/${id}`);
       return res.data;
     } catch (err) {
-      if (USE_MOCK_FALLBACK) {
-        await new Promise((r) => setTimeout(r, 200));
-        const movies = getStoredMovies();
-        const found = movies.find((m) => m.id === id);
-        if (!found) throw new Error('Movie not found');
-        const user = getCurrentUser();
-        const userProgress = user?.id
-          ? JSON.parse(localStorage.getItem(`streambox_progress_${user.id}`) || '{}')
-          : {};
-        const item = userProgress[id];
-        return {
-          ...found,
-          progress: item ? item.percent : 0,
-          lastPosition: item ? item.position : 0
-        };
-      }
-      throw err;
+      console.warn('[Movies API] Falling back for movie ID:', id, err.message);
+      const movies = getStoredMovies();
+      const found = movies.find((m) => m.id === id);
+      if (!found) throw new Error('Movie not found');
+      const user = getCurrentUser();
+      const userProgress = user?.id
+        ? JSON.parse(localStorage.getItem(`streambox_progress_${user.id}`) || '{}')
+        : {};
+      const item = userProgress[id];
+      return {
+        ...found,
+        progress: item ? item.percent : 0,
+        lastPosition: item ? item.position : 0
+      };
     }
   },
 
@@ -429,35 +422,31 @@ export const moviesApi = {
       const res = await apiClient.get(`/movies/search?q=${encodeURIComponent(query)}`);
       return res.data;
     } catch (err) {
-      if (USE_MOCK_FALLBACK) {
-        await new Promise((r) => setTimeout(r, 200));
-        const q = (query || '').toLowerCase().trim();
-        const movies = getStoredMovies();
-        const user = getCurrentUser();
-        const userProgress = user?.id
-          ? JSON.parse(localStorage.getItem(`streambox_progress_${user.id}`) || '{}')
-          : {};
+      const q = (query || '').toLowerCase().trim();
+      const movies = getStoredMovies();
+      const user = getCurrentUser();
+      const userProgress = user?.id
+        ? JSON.parse(localStorage.getItem(`streambox_progress_${user.id}`) || '{}')
+        : {};
 
-        const filtered = !q
-          ? movies
-          : movies.filter(
-              (m) =>
-                m.title.toLowerCase().includes(q) ||
-                m.description?.toLowerCase().includes(q) ||
-                m.genres?.some((g) => g.toLowerCase().includes(q)) ||
-                m.cast?.some((c) => c.toLowerCase().includes(q))
-            );
+      const filtered = !q
+        ? movies
+        : movies.filter(
+            (m) =>
+              m.title.toLowerCase().includes(q) ||
+              m.description?.toLowerCase().includes(q) ||
+              m.genres?.some((g) => g.toLowerCase().includes(q)) ||
+              m.cast?.some((c) => c.toLowerCase().includes(q))
+          );
 
-        return filtered.map((m) => {
-          const item = userProgress[m.id];
-          return {
-            ...m,
-            progress: item ? item.percent : 0,
-            lastPosition: item ? item.position : 0
-          };
-        });
-      }
-      throw err;
+      return filtered.map((m) => {
+        const item = userProgress[m.id];
+        return {
+          ...m,
+          progress: item ? item.percent : 0,
+          lastPosition: item ? item.position : 0
+        };
+      });
     }
   },
 
@@ -531,10 +520,8 @@ export const plansApi = {
       const res = await apiClient.get('/plans');
       return res.data;
     } catch (err) {
-      if (USE_MOCK_FALLBACK) {
-        return MOCK_PLANS;
-      }
-      throw err;
+      console.warn('[Plans API] Falling back to default plans:', err.message);
+      return MOCK_PLANS;
     }
   },
 
