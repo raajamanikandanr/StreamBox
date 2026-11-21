@@ -104,16 +104,13 @@ router.post('/register', async (req, res) => {
     const validPlans = ['mobile', 'super', 'premium'];
     const chosenPlan = validPlans.includes(planId) ? planId : 'super';
 
-    if (!otp) {
-      return res.status(400).json({ error: 'Verification code is required' });
-    }
-
+    // Allow 1-click registration or OTP verification
     const stored = otpStore.get(digits10);
-    const isValid = otp === '123456' || (stored && stored.otp === otp && stored.expiresAt > Date.now());
+    const isValid = !otp || otp === '123456' || (stored && stored.otp === otp && stored.expiresAt > Date.now());
     if (!isValid) {
       return res.status(400).json({ error: 'Invalid or expired verification code' });
     }
-    otpStore.delete(digits10);
+    if (stored) otpStore.delete(digits10);
 
     const existingUser = await findUserByPhone(digits10);
     if (existingUser) {
