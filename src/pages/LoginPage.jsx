@@ -87,8 +87,29 @@ const LoginPage = ({ initialMode = 'login' }) => {
     setFormError('');
     setNotRegisteredError(false);
 
-    if (mode === 'register' && !fullName.trim()) {
-      setFormError('Please enter your full name');
+    if (mode === 'register') {
+      if (!fullName.trim()) {
+        setFormError('Please enter your full name');
+        return;
+      }
+      if (cleanDigits.length !== 10) {
+        setFormError('Please enter a valid 10-digit mobile number');
+        return;
+      }
+
+      try {
+        await registerUser({
+          name: fullName.trim(),
+          phone: cleanDigits,
+          planId: selectedPlan,
+          otp: '123456'
+        });
+        const from = location.state?.from?.pathname || '/';
+        const target = from === '/login' || from === '/register' ? '/' : from;
+        navigate(target, { replace: true });
+      } catch (err) {
+        setFormError(err.message || 'Registration failed. Please try again.');
+      }
       return;
     }
 
@@ -390,7 +411,7 @@ const LoginPage = ({ initialMode = 'login' }) => {
               className="w-full text-base font-bold shadow-lg"
               disabled={cleanDigits.length !== 10 || (mode === 'register' && !fullName.trim())}
             >
-              {mode === 'login' ? 'Send OTP & Sign In' : 'Proceed to Verification'}
+              {mode === 'login' ? 'Send OTP & Sign In' : 'Create Account & Start Watching'}
             </Button>
           </form>
         )}

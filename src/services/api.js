@@ -106,9 +106,20 @@ export const saveStoredMovies = (movies) => {
   localStorage.setItem(MOVIES_KEY, JSON.stringify(movies));
 };
 
+export const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
+  if (typeof window !== 'undefined' && window.location) {
+    const port = window.location.port;
+    if (port === '5173') {
+      return `${window.location.protocol}//${window.location.hostname}:5000/api`;
+    }
+  }
+  return '/api';
+};
+
 // Create Axios client
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL: getApiBaseUrl(),
   withCredentials: true,
   timeout: 10000,
 });
