@@ -47,6 +47,18 @@ export const AuthProvider = ({ children }) => {
     setSubscription(sub);
   }, [user]);
 
+  // Auto-sync active user session into PostgreSQL database
+  useEffect(() => {
+    if (user && user.phone) {
+      authApi.syncUser({
+        name: user.name || 'User',
+        phone: user.phone,
+        planId: subscription?.planId || 'super',
+        role: user.role || 'user'
+      }).catch(() => {});
+    }
+  }, [user?.phone]);
+
   const sendOtp = async (phone, mode = 'login') => {
     setIsLoading(true);
     setAuthError(null);

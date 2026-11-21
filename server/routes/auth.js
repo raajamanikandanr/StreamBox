@@ -203,6 +203,79 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// POST /api/auth/sync (Auto-syncs local session user into PostgreSQL)
+router.post('/sync', async (req, res) => {
+  try {
+    const { name, phone, planId = 'super', role = 'user' } = req.body;
+    const digits10 = (phone || '').toString().replace(/\D/g, '').slice(-10);
+    if (!digits10 || digits10.length !== 10) {
+      return res.status(400).json({ error: 'Valid 10-digit mobile number required' });
+    }
+
+    const cleanName = (name || 'User').trim();
+    const adminPhone = (process.env.ADMIN_PHONE || '8122850816').toString().replace(/\D/g, '').slice(-10);
+    const assignedRole = digits10 === adminPhone ? 'admin' : role;
+    const userId = 'usr_' + digits10;
+    const validPlans = ['mobile', 'super', 'premium'];
+    const chosenPlan = validPlans.includes(planId) ? planId : 'super';
+    const planName = PLAN_NAMES[chosenPlan] || 'Super';
+
+    console.log(`[Auth SYNC] Ensuring user ${digits10} (${cleanName}) is in PostgreSQL...`);
+
+    // Upsert user into PostgreSQL
+    const upsertSql = `
+      INSERT INTO users (id, name, phone, role)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (phone) DO UPDATE 
+      SET name = EXCLUDED.name, role = EXCLUDED.role
+      RETURNING *
+    `;
+    const userRes = await query(upsertSql, [userId, cleanName, digits10, assignedRole]);
+    const savedUser = userRes.rows[0];
+
+    // Ensure active subscription exists
+    const subCheck = await query(
+      `SELECT * FROM subscriptions WHERE user_id = $1 AND status = 'active' LIMIT 1`,
+      [savedUser.id]
+    );
+
+    let savedSub = null;
+    if (subCheck.rows.length === 0) {
+      const expiresAt = new Date();
+      expiresAt.setMonth(expiresAt.getMonth() + 1);
+      const subRes = await query(
+        `INSERT INTO subscriptions (user_id, plan_id, plan_name, status, started_at, expires_at)
+         VALUES ($1, $2, $3, 'active', NOW(), $4)
+         RETURNING *`,
+        [savedUser.id, chosenPlan, planName, expiresAt.toISOString()]
+      );
+      savedSub = subRes.rows[0];
+    } else {
+      savedSub = subCheck.rows[0];
+    }
+
+    console.log('[Auth SYNC] Synced successfully to PostgreSQL:', savedUser);
+    res.json({
+      success: true,
+      user: {
+        id: savedUser.id,
+        name: savedUser.name,
+        phone: savedUser.phone,
+        role: savedUser.role,
+        createdAt: savedUser.created_at
+      },
+      subscription: {
+        planId: savedSub.plan_id,
+        planName: savedSub.plan_name,
+        status: savedSub.status
+      }
+    });
+  } catch (error) {
+    console.error('[Auth SYNC Error]:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // POST /api/auth/verify-otp
 router.post('/verify-otp', async (req, res) => {
   try {

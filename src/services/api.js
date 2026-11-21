@@ -345,6 +345,15 @@ export const authApi = {
       localStorage.removeItem(USER_KEY);
       localStorage.removeItem(SUB_KEY);
     }
+  },
+
+  syncUser: async (userData) => {
+    try {
+      const res = await apiClient.post('/auth/sync', userData);
+      return res.data;
+    } catch {
+      return null;
+    }
   }
 };
 
