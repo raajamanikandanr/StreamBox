@@ -144,8 +144,8 @@ apiClient.interceptors.response.use((response) => {
   return response;
 });
 
-// Flag to use mock fallback when backend is offline
-const USE_MOCK_FALLBACK = true;
+// Flag to use mock fallback: set to false so requests always go to PostgreSQL
+const USE_MOCK_FALLBACK = false;
 
 /**
  * Auth API
@@ -156,7 +156,13 @@ export const authApi = {
       const res = await apiClient.post('/auth/send-otp', { phone, mode });
       return res.data;
     } catch (err) {
-      if (USE_MOCK_FALLBACK) {
+      if (err.response?.data?.error) {
+        const error = new Error(err.response.data.error);
+        error.notRegistered = err.response.data.notRegistered;
+        error.alreadyRegistered = err.response.data.alreadyRegistered;
+        throw error;
+      }
+      if (USE_MOCK_FALLBACK && (!err.response || err.code === 'ERR_NETWORK')) {
         await new Promise((r) => setTimeout(r, 400));
         const cleanPhone = (phone || '').toString().replace(/\D/g, '').slice(-10);
         const usersDb = getRegisteredUsers();
@@ -197,7 +203,10 @@ export const authApi = {
       }
       return res.data;
     } catch (err) {
-      if (USE_MOCK_FALLBACK) {
+      if (err.response?.data?.error) {
+        throw new Error(err.response.data.error);
+      }
+      if (USE_MOCK_FALLBACK && (!err.response || err.code === 'ERR_NETWORK')) {
         await new Promise((r) => setTimeout(r, 500));
         const cleanPhone = (phone || '').toString().replace(/\D/g, '').slice(-10);
         const cleanName = (name || '').trim();
@@ -270,7 +279,10 @@ export const authApi = {
       }
       return res.data;
     } catch (err) {
-      if (USE_MOCK_FALLBACK) {
+      if (err.response?.data?.error) {
+        throw new Error(err.response.data.error);
+      }
+      if (USE_MOCK_FALLBACK && (!err.response || err.code === 'ERR_NETWORK')) {
         await new Promise((r) => setTimeout(r, 500));
         const rawPhone = phone || sessionStorage.getItem('pending_phone');
         const cleanPhone = (rawPhone || '').toString().replace(/\D/g, '').slice(-10);

@@ -147,37 +147,36 @@ router.post('/register', async (req, res) => {
       expiresAt: expiresAt.toISOString()
     };
 
-    // Try DB insertion, fallback to memory if DB offline
-    try {
-      const insertUserRes = await query(
-        'INSERT INTO users (id, name, phone, role) VALUES ($1, $2, $3, $4) RETURNING *',
-        [userId, cleanName, digits10, role]
-      );
-      if (insertUserRes.rows.length > 0) {
-        userRecord = insertUserRes.rows[0];
-      }
-
-      const subRes = await query(
-        `INSERT INTO subscriptions (user_id, plan_id, plan_name, status, started_at, expires_at)
-         VALUES ($1, $2, $3, 'active', NOW(), $4)
-         RETURNING *`,
-        [userId, chosenPlan, planName, expiresAt.toISOString()]
-      );
-      if (subRes.rows.length > 0) {
-        const row = subRes.rows[0];
-        subscription = {
-          planId: row.plan_id,
-          planName: row.plan_name,
-          status: row.status,
-          startedAt: row.started_at,
-          expiresAt: row.expires_at
-        };
-      }
-    } catch (dbErr) {
-      console.warn('[Auth] Database offline during registration, saved to memory:', dbErr.message);
+    // Insert into PostgreSQL database
+    console.log(`[Auth] Executing PostgreSQL INSERT for user ${digits10} (${cleanName})...`);
+    const insertUserRes = await query(
+      'INSERT INTO users (id, name, phone, role) VALUES ($1, $2, $3, $4) RETURNING *',
+      [userId, cleanName, digits10, role]
+    );
+    if (insertUserRes.rows.length > 0) {
+      userRecord = insertUserRes.rows[0];
     }
+    console.log('[Auth] User successfully inserted into PostgreSQL:', userRecord);
 
-    // Always keep in memory store
+    const subRes = await query(
+      `INSERT INTO subscriptions (user_id, plan_id, plan_name, status, started_at, expires_at)
+       VALUES ($1, $2, $3, 'active', NOW(), $4)
+       RETURNING *`,
+      [userId, chosenPlan, planName, expiresAt.toISOString()]
+    );
+    if (subRes.rows.length > 0) {
+      const row = subRes.rows[0];
+      subscription = {
+        planId: row.plan_id,
+        planName: row.plan_name,
+        status: row.status,
+        startedAt: row.started_at,
+        expiresAt: row.expires_at
+      };
+    }
+    console.log('[Auth] Subscription successfully inserted into PostgreSQL:', subscription);
+
+    // Keep memory cache updated
     memoryUsers.set(digits10, {
       ...userRecord,
       planId: chosenPlan,
