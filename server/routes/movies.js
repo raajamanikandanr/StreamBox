@@ -26,6 +26,17 @@ export const formatMovie = (row) => {
   };
 };
 
+export const requireAdmin = (req, res, next) => {
+  const adminPhone = (process.env.ADMIN_PHONE || '8122850816').toString().replace(/\D/g, '').slice(-10);
+  const userPhone = (req.headers['x-user-phone'] || '').toString().replace(/\D/g, '').slice(-10);
+  const userRole = req.headers['x-user-role'];
+
+  if (userRole === 'admin' || (userPhone && userPhone === adminPhone)) {
+    return next();
+  }
+  return res.status(403).json({ error: 'Access denied: Administrator privileges required.' });
+};
+
 // GET /api/movies/search?q=...
 router.get('/search', async (req, res) => {
   try {
@@ -99,7 +110,7 @@ router.get('/:id/stream', async (req, res) => {
 });
 
 // POST /api/movies (Admin create movie)
-router.post('/', async (req, res) => {
+router.post('/', requireAdmin, async (req, res) => {
   try {
     const {
       title,
@@ -157,7 +168,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/movies/:id
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
@@ -206,7 +217,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/movies/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAdmin, async (req, res) => {
   try {
     const result = await query('DELETE FROM movies WHERE id = $1 RETURNING id', [req.params.id]);
     if (result.rows.length === 0) {

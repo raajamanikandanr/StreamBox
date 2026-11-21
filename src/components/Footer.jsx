@@ -1,8 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Film } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Footer = () => {
+  const { isAdmin } = useAuth();
   return (
     <footer className="w-full bg-bg-deep border-t border-text-muted/20 py-10 px-4 sm:px-8 mt-auto">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
@@ -32,9 +34,11 @@ const Footer = () => {
           <Link to="/plans" className="text-blue-prime hover:text-blue-bright transition-colors">
             Subscription Plans
           </Link>
-          <Link to="/admin" className="text-blue-prime hover:text-blue-bright transition-colors">
-            Admin Console
-          </Link>
+          {isAdmin && (
+            <Link to="/admin" className="text-blue-prime hover:text-blue-bright transition-colors">
+              Admin Console
+            </Link>
+          )}
         </div>
 
         {/* Copyright */}

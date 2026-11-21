@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { authApi, plansApi } from '../services/api';
+import { authApi, plansApi, isUserAdmin, getAdminPhone } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -14,7 +14,21 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     try {
       const stored = localStorage.getItem('streambox_user');
-      return stored ? JSON.parse(stored) : null;
+      if (!stored) return null;
+      const parsed = JSON.parse(stored);
+      if (parsed) {
+        const adminPhone = getAdminPhone();
+        const userPhone = (parsed.phone || '').toString().replace(/\D/g, '').slice(-10);
+        const shouldBeAdmin = userPhone === adminPhone;
+        if (shouldBeAdmin && parsed.role !== 'admin') {
+          parsed.role = 'admin';
+          localStorage.setItem('streambox_user', JSON.stringify(parsed));
+        } else if (!shouldBeAdmin && parsed.role === 'admin') {
+          parsed.role = 'user';
+          localStorage.setItem('streambox_user', JSON.stringify(parsed));
+        }
+      }
+      return parsed;
     } catch {
       return null;
     }
@@ -54,7 +68,12 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await authApi.verifyOtp(phone, otp);
       if (res.user) {
-        setUser(res.user);
+        const adminPhone = getAdminPhone();
+        const userPhone = (res.user.phone || '').toString().replace(/\D/g, '').slice(-10);
+        const role = userPhone === adminPhone ? 'admin' : 'user';
+        const updatedUser = { ...res.user, role };
+        setUser(updatedUser);
+        localStorage.setItem('streambox_user', JSON.stringify(updatedUser));
         // Refresh subscription
         setSubscription(res.subscription || plansApi.getCurrentSubscription());
       }
@@ -102,6 +121,7 @@ export const AuthProvider = ({ children }) => {
       value={{
         user,
         isAuthenticated: !!user,
+        isAdmin: isUserAdmin(user),
         subscription,
         isLoading,
         authError,

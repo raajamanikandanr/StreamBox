@@ -13,6 +13,7 @@ import PlansPage from './pages/PlansPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminPage from './pages/AdminPage';
 import LoginPage from './pages/LoginPage';
+import AdminRoute from './components/AdminRoute';
 
 function App() {
   return (
@@ -27,7 +28,14 @@ function App() {
             <Route path="/search" element={<SearchPage />} />
             <Route path="/plans" element={<PlansPage />} />
             <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/admin" element={<AdminPage />} />
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <AdminPage />
+                </AdminRoute>
+              }
+            />
             <Route path="/login" element={<LoginPage />} />
             {/* Catch-all redirect */}
             <Route path="*" element={<Navigate to="/" replace />} />

@@ -187,6 +187,8 @@ const INITIAL_MOVIES = [
   }
 ];
 
+const adminPhone = (process.env.ADMIN_PHONE || '8122850816').replace(/\D/g, '').slice(-10);
+
 const INITIAL_USERS = [
   { id: 'usr-101', phone: '9876500001', role: 'user', planId: 'mobile', planName: 'Mobile' },
   { id: 'usr-102', phone: '9876500002', role: 'user', planId: 'mobile', planName: 'Mobile' },
@@ -197,7 +199,8 @@ const INITIAL_USERS = [
   { id: 'usr-107', phone: '9876500007', role: 'user', planId: 'super', planName: 'Super' },
   { id: 'usr-108', phone: '9876500008', role: 'user', planId: 'premium', planName: 'Premium 4K' },
   { id: 'usr-109', phone: '9876500009', role: 'user', planId: 'premium', planName: 'Premium 4K' },
-  { id: 'usr-110', phone: '9876500010', role: 'admin', planId: 'premium', planName: 'Premium 4K' }
+  { id: 'usr-110', phone: '9876500010', role: 'user', planId: 'premium', planName: 'Premium 4K' },
+  { id: 'usr-admin', phone: adminPhone, role: 'admin', planId: 'premium', planName: 'Admin Premium 4K' }
 ];
 
 export const seedDatabase = async () => {

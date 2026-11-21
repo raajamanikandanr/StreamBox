@@ -1,6 +1,18 @@
 import axios from 'axios';
 import { MOCK_MOVIES, MOCK_PLANS } from './mockData';
 
+export const getAdminPhone = () => {
+  const envPhone = (import.meta.env.VITE_ADMIN_PHONE || '8122850816').toString();
+  return envPhone.replace(/\D/g, '').slice(-10);
+};
+
+export const isUserAdmin = (user) => {
+  if (!user) return false;
+  const adminPhone = getAdminPhone();
+  const userPhone = (user.phone || '').toString().replace(/\D/g, '').slice(-10);
+  return user.role === 'admin' || userPhone === adminPhone;
+};
+
 export const DEMO_PHONE_PLANS = {
   '9876500001': { planId: 'mobile', planName: 'Mobile', status: 'active' },
   '9876500002': { planId: 'mobile', planName: 'Mobile', status: 'active' },
@@ -11,7 +23,8 @@ export const DEMO_PHONE_PLANS = {
   '9876500007': { planId: 'super', planName: 'Super', status: 'active' },
   '9876500008': { planId: 'premium', planName: 'Premium 4K', status: 'active' },
   '9876500009': { planId: 'premium', planName: 'Premium 4K', status: 'active' },
-  '9876500010': { planId: 'premium', planName: 'Premium 4K', status: 'active' }
+  '9876500010': { planId: 'premium', planName: 'Premium 4K', status: 'active' },
+  '8122850816': { planId: 'premium', planName: 'Admin Premium 4K', status: 'active' }
 };
 
 // Storage keys
@@ -50,6 +63,21 @@ const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   withCredentials: true, // For httpOnly cookies
   timeout: 10000,
+});
+
+// Interceptor: attach current user headers for RBAC
+apiClient.interceptors.request.use((config) => {
+  try {
+    const raw = localStorage.getItem(USER_KEY);
+    if (raw) {
+      const u = JSON.parse(raw);
+      if (u?.phone) config.headers['x-user-phone'] = u.phone;
+      if (u?.role) config.headers['x-user-role'] = u.role;
+    }
+  } catch {
+    // ignore
+  }
+  return config;
 });
 
 // Interceptor: reject HTML SPA fallback responses when backend endpoints are offline
@@ -109,14 +137,16 @@ export const authApi = {
       if (USE_MOCK_FALLBACK) {
         await new Promise((r) => setTimeout(r, 700));
         if (otp && otp.length === 6) {
+          const rawPhone = phone || sessionStorage.getItem('pending_phone') || '9876500008';
+          const cleanPhone = (rawPhone || '').toString().replace(/\D/g, '').slice(-10);
+          const adminPhone = getAdminPhone();
           const user = {
             id: 'usr_' + Date.now(),
-            phone: phone || sessionStorage.getItem('pending_phone') || '9876500008',
-            role: (phone === '9876500010' || phone?.includes('admin')) ? 'admin' : 'user',
+            phone: cleanPhone,
+            role: cleanPhone === adminPhone ? 'admin' : 'user',
             createdAt: new Date().toISOString()
           };
           localStorage.setItem(USER_KEY, JSON.stringify(user));
-          const cleanPhone = (user.phone || '').replace(/\D/g, '').slice(-10);
           const sub = DEMO_PHONE_PLANS[cleanPhone] || null;
           if (sub) {
             localStorage.setItem(SUB_KEY, JSON.stringify(sub));
@@ -333,6 +363,11 @@ export const plansApi = {
  */
 export const adminApi = {
   createMovie: async (movieData, onProgress) => {
+    const raw = localStorage.getItem(USER_KEY);
+    const currentUser = raw ? JSON.parse(raw) : null;
+    if (!isUserAdmin(currentUser)) {
+      throw new Error('Access denied: Administrator privileges required.');
+    }
     try {
       if (onProgress) {
         for (let p = 10; p <= 90; p += 30) {
@@ -388,6 +423,11 @@ export const adminApi = {
   },
 
   updateMovie: async (id, updates) => {
+    const raw = localStorage.getItem(USER_KEY);
+    const currentUser = raw ? JSON.parse(raw) : null;
+    if (!isUserAdmin(currentUser)) {
+      throw new Error('Access denied: Administrator privileges required.');
+    }
     try {
       const res = await apiClient.put(`/admin/movies/${id}`, updates);
       return res.data;
@@ -401,6 +441,11 @@ export const adminApi = {
   },
 
   deleteMovie: async (id) => {
+    const raw = localStorage.getItem(USER_KEY);
+    const currentUser = raw ? JSON.parse(raw) : null;
+    if (!isUserAdmin(currentUser)) {
+      throw new Error('Access denied: Administrator privileges required.');
+    }
     try {
       const res = await apiClient.delete(`/admin/movies/${id}`);
       return res.data;

@@ -58,15 +58,28 @@ router.post('/verify-otp', async (req, res) => {
       [digits10]
     );
 
+    const adminPhone = (process.env.ADMIN_PHONE || '8122850816').toString().replace(/\D/g, '').slice(-10);
+    const expectedRole = digits10 === adminPhone ? 'admin' : 'user';
+
     let user;
     if (existing.rows.length > 0) {
       user = existing.rows[0];
+      if (user.role !== expectedRole) {
+        try {
+          const updateRes = await query(
+            'UPDATE users SET role = $1 WHERE id = $2 RETURNING *',
+            [expectedRole, user.id]
+          );
+          user = updateRes.rows[0] || { ...user, role: expectedRole };
+        } catch {
+          user.role = expectedRole;
+        }
+      }
     } else {
       const id = 'usr_' + Date.now();
-      const role = digits10 === '9876500010' ? 'admin' : 'user';
       const insertResult = await query(
         'INSERT INTO users (id, phone, role) VALUES ($1, $2, $3) RETURNING *',
-        [id, digits10, role]
+        [id, digits10, expectedRole]
       );
       user = insertResult.rows[0];
     }

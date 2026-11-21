@@ -6,7 +6,7 @@ import Button from './Button';
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated, subscription, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, subscription, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -69,9 +69,11 @@ const Navbar = () => {
               <NavLink to="/plans" className={navLinkClasses}>
                 Plans
               </NavLink>
-              <NavLink to="/admin" className={navLinkClasses}>
-                Admin
-              </NavLink>
+              {isAdmin && (
+                <NavLink to="/admin" className={navLinkClasses}>
+                  Admin
+                </NavLink>
+              )}
             </div>
           </div>
 
@@ -150,14 +152,16 @@ const Navbar = () => {
                       Manage Subscription
                     </Link>
 
-                    <Link
-                      to="/admin"
-                      onClick={() => setProfileDropdownOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-text-muted hover:text-text-primary hover:bg-bg-base/60 transition-colors"
-                    >
-                      <Shield className="w-4 h-4 text-blue-dodger" />
-                      Admin Dashboard
-                    </Link>
+                    {isAdmin && (
+                      <Link
+                        to="/admin"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-text-muted hover:text-text-primary hover:bg-bg-base/60 transition-colors"
+                      >
+                        <Shield className="w-4 h-4 text-blue-dodger" />
+                        Admin Dashboard
+                      </Link>
+                    )}
 
                     <div className="my-1 border-t border-text-muted/20" />
 
@@ -235,13 +239,15 @@ const Navbar = () => {
             >
               Plans
             </Link>
-            <Link
-              to="/admin"
-              onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-bg-base/60"
-            >
-              Admin
-            </Link>
+            {isAdmin && (
+              <Link
+                to="/admin"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-3 py-2 rounded-lg text-sm font-medium text-text-primary hover:bg-bg-base/60"
+              >
+                Admin
+              </Link>
+            )}
           </div>
 
           <div className="pt-2 border-t border-text-muted/20">
